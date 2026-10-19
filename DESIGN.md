@@ -1,5 +1,7 @@
 # Design reference (updated 2026-10-19)
 
+Latest UX instruction: remove redundant controls and notes and follow researched dashboard patterns. Import is localized to Sources & import, export to the transaction toolbar, and theme switching to the global top bar. Page subtitles/eyebrows, workspace card, repeated footer notes, duplicated chart totals and project metrics are removed. Source diagnostics and mock notifications are progressively disclosed. Native transaction detail dialogs replace repeated project-select/save controls in table rows. Research and rationale: docs/ux-decisions.md. Data ownership review: docs/unassigned-review.md.
+
 Current user instruction supersedes the initial visual direction below: use **x.ai as the primary reference**, with clean modern typography, layout, and components. Use the supplied KU Creatives logo and proper icons such as Lucide. No emoji or text glyphs as UI icons.
 
 The implemented revision uses neutral white/black/zinc surfaces, Geist variable typography, a monochrome line/area chart, restrained border radii, and more deliberate spacing. Dark is the default for a new browser preference, with an equally supported light theme. Status exceptions alone use amber/red. Budget values and transaction logic are unchanged.

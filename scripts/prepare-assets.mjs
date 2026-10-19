@@ -2,7 +2,7 @@ import { copyFile, mkdir, writeFile } from 'node:fs/promises';
 import { icons } from 'lucide';
 
 await mkdir('public/assets', { recursive: true });
-const selected = ['LayoutDashboard', 'FolderOpen', 'ArrowLeftRight', 'Database', 'Bell', 'Moon', 'Sun', 'ShieldCheck', 'PanelLeft', 'ChevronRight', 'ChevronDown', 'Clock3', 'Layers2', 'Download', 'Upload', 'Info', 'ArrowUpRight', 'CircleCheck', 'TriangleAlert', 'CircleAlert', 'Wallet', 'ChartNoAxesCombined', 'RefreshCw', 'ReceiptText', 'Search', 'ArrowDownLeft'];
+const selected = ['X', 'LayoutDashboard', 'FolderOpen', 'ArrowLeftRight', 'Database', 'Bell', 'Moon', 'Sun', 'ShieldCheck', 'PanelLeft', 'ChevronRight', 'ChevronDown', 'Clock3', 'Layers2', 'Download', 'Upload', 'Info', 'ArrowUpRight', 'CircleCheck', 'TriangleAlert', 'CircleAlert', 'Wallet', 'ChartNoAxesCombined', 'RefreshCw', 'ReceiptText', 'Search', 'ArrowDownLeft'];
 const output = Object.fromEntries(selected.map(name => {
   if (!icons[name]) throw new Error(`Missing Lucide icon: ${name}`);
   return [name.replace(/([a-z])([A-Z])/g, '$1-$2').replace(/([a-z])(\d)/g, '$1-$2').toLowerCase(), icons[name]];

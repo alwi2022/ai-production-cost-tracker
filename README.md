@@ -51,11 +51,14 @@ The Vendor C process separately supports `PORT` and `VC_FAIL_RATE`. To disable i
 
 - **Overview:** total assigned spend, budgets, warnings, weekly net spend, and vendor breakdown. The project selector updates these views. Refunds reduce spend. Unassigned costs remain visible in a separate warning.
 - **Proyek:** project spend, budget, percentage, and status. Click a project name to inspect its transactions.
-- **Transaksi:** search, filter by project/status, and paginate. Choose a project and click **Tautkan** to resolve an unknown label for that specific transaction. Assignments persist across imports and trigger budget evaluation.
+- **Transaksi:** search, filter by project/status, and paginate in one toolbar. Click a transaction ID to open details. For an unresolved record, choose its confirmed project and click **Simpan proyek**. Assignments persist across imports and trigger budget evaluation.
 - **Sumber & import:** source locations, row counts, last import counts, and fixed conversion rates. Update the supplied files on disk and rerun import. This version does not have file upload controls.
-- **Notifikasi:** delivery status and a local mock webhook inbox. **Coba ulang notifikasi tertunda** evaluates budgets and retries pending messages.
-- **Export CSV:** exports all stored records under the project filter; on the transactions page it additionally respects search/status filters. Includes `status` and `duplicate_of`, so duplicate rows must not be summed. Dates include `+07:00`; amounts are unformatted numeric IDR. Spreadsheet formula prefixes in text values are neutralized.
-- Light/dark theme persists in the browser. The main toolbar exposes the theme toggle on mobile as well.
+- **Notifikasi:** delivery status in one table. A retry action appears only when pending messages exist. The local mock webhook inbox is available in an expandable section.
+- **Export CSV:** available only on Transaksi; respects its visible project, search, and status filters. Includes `status` and `duplicate_of`, so duplicate rows must not be summed. Dates include `+07:00`; amounts are unformatted numeric IDR. Spreadsheet formula prefixes in text values are neutralized.
+- Light/dark theme persists in the browser. One top-bar toggle serves desktop and mobile.
+- Import exists only on Sumber & import. Source paths, conversion details, and diagnostics are in an expandable section instead of repeated notes.
+
+The UX research and final action placement are documented in [docs/ux-decisions.md](docs/ux-decisions.md). Review of the original 13 unassigned transactions is in [docs/unassigned-review.md](docs/unassigned-review.md). At review time, an existing user assignment had already linked one to BRK-05; the other 12 lack enough source evidence for automatic allocation.
 
 ## Architecture
 
@@ -158,7 +161,7 @@ Seven test groups cover locale money parsing, refunds, date formats/WIB boundari
 
 The real mock API was also imported twice successfully. Dependency audit reports zero known vulnerabilities at implementation time. The UUID transitive dependency of ExcelJS is overridden to a patched CommonJS-compatible version, exercised by workbook import tests.
 
-**Visual verification is incomplete:** browser access to the local app was denied by the browser permission system. No alternate browser path was used. Desktop/mobile layouts, actual keyboard flow, CSV download behavior, and theme rendering have not been clicked through. Source-level accessibility review and calculated color contrast checks for the revised interface are documented in `anti-slop/audit-002-2026-10-19.md`. The first audit is retained as history.
+**Visual verification is incomplete:** browser access to the local app was denied by a saved permission preference, including a retry after the user reported changing it to Allow. No alternate browser path was used. Desktop/mobile layouts, actual keyboard flow, CSV download behavior, and theme rendering have not been clicked through. The current source/integration review and remaining verification boundary are documented in `anti-slop/audit-003-2026-10-19.md`; audit 002 includes the revised color contrast calculations. Earlier audits are retained as history.
 
 ## Limitations and next steps
 
