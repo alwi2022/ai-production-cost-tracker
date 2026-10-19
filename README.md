@@ -1,6 +1,6 @@
-# Production Ledger
+# KU Creatives Production Finance
 
-Internal AI production cost tracker for the supplied take-home assignment. Imports Vendor A and B CSVs, the Vendor C HTTP API, and the manual operations workbook into SQLite. The Indonesian dashboard shows project budgets, vendor costs, weekly spend, reconciliation results, and notifications.
+Internal AI production cost tracker for the supplied take-home assignment. Imports Vendor A and B CSVs, the Vendor C HTTP API, and the manual operations workbook into SQLite. The Indonesian dashboard shows project budgets, vendor costs, weekly spend, reconciliation results, and notifications. The revised interface uses x.ai as the primary composition reference, the user-requested KU Creatives logo, self-hosted Geist, and locally bundled Lucide SVG icons.
 
 ## Run locally
 
@@ -80,7 +80,8 @@ CSV A + CSV B + XLSX + Vendor C HTTP
 - `src/dashboard.js`: read model. Project/vendor/weekly totals include only `included` records. `unresolved` and `duplicate` records remain inspectable.
 - `src/alerts.js`: durable pending/sent notifications, delivery timeout, retries on demand, and a stable idempotency header.
 - `src/server.js`: Express API, static frontend, local write protection, and one active mutation at a time per server process.
-- `public/`: buildless HTML/CSS/JavaScript; no runtime CDN, external fonts, or frontend framework. Charts are generated from imported records using SVG.
+- `public/`: buildless HTML/CSS/JavaScript; no runtime CDN or frontend framework. Geist fonts and selected Lucide icons are served locally. Charts are generated from imported records using SVG, with expandable data tables.
+- `scripts/prepare-assets.mjs`: postinstall step prepares the local font, selected icon data, and license files. Generated assets are also committed so the checkout is reviewable immediately.
 
 SQLite fits a small, single-machine internal tool and avoids a separate database service. The browser never receives the Vendor C credential. Source payloads and original labels are retained for auditability. Amounts are integer **hundredths of IDR** internally; JSON/API values named `amount`, `spend`, and `budget` use this unit. Webhook fields ending in `_idr` and CSV exports use actual IDR.
 
@@ -157,7 +158,7 @@ Seven test groups cover locale money parsing, refunds, date formats/WIB boundari
 
 The real mock API was also imported twice successfully. Dependency audit reports zero known vulnerabilities at implementation time. The UUID transitive dependency of ExcelJS is overridden to a patched CommonJS-compatible version, exercised by workbook import tests.
 
-**Visual verification is incomplete:** browser access to the local app was denied by the browser permission system. No alternate browser path was used. Desktop/mobile layouts, actual keyboard flow, CSV download behavior, and theme rendering have not been clicked through. Source-level accessibility review and calculated color contrast checks are documented in `anti-slop/audit-001-2026-10-19.md`. Treat the UI as a draft pending that audit follow-up.
+**Visual verification is incomplete:** browser access to the local app was denied by the browser permission system. No alternate browser path was used. Desktop/mobile layouts, actual keyboard flow, CSV download behavior, and theme rendering have not been clicked through. Source-level accessibility review and calculated color contrast checks for the revised interface are documented in `anti-slop/audit-002-2026-10-19.md`. The first audit is retained as history.
 
 ## Limitations and next steps
 

@@ -1,4 +1,18 @@
-# Design reference
+# Design reference (updated 2026-10-19)
+
+Current user instruction supersedes the initial visual direction below: use **x.ai as the primary reference**, with clean modern typography, layout, and components. Use the supplied KU Creatives logo and proper icons such as Lucide. No emoji or text glyphs as UI icons.
+
+The implemented revision uses neutral white/black/zinc surfaces, Geist variable typography, a monochrome line/area chart, restrained border radii, and more deliberate spacing. Dark is the default for a new browser preference, with an equally supported light theme. Status exceptions alone use amber/red. Budget values and transaction logic are unchanged.
+
+Lucide icons are explicitly authorized by the user and selected for their semantic function: folders for projects, arrows for transactions, database for sources, bell for notifications, and download/upload for data actions. This instruction overrides the optional skill's caution against Lucide chosen only for its visual style.
+
+The logo is the original transparent image used by https://www.kucreatives.com/ and is bundled locally. It replaces the previous invented monogram and working brand. Source and license attribution for the logo, Geist, and Lucide is recorded in public/assets/SOURCES.md. No avatar or fictional person is shown.
+
+Energy 2 / Rhythm 2 / Motion 1 remains appropriate: the work is financial scanning rather than marketing. A large page title leads to totals, then weekly/vendor comparison, then project detail. Motion is limited to a line fade and interaction state transitions, with reduced-motion support. Focus is restored on common filters and moved to the heading on navigation. Charts and transaction references provide native expandable text details.
+
+Primary sources: https://x.ai/ and https://www.kucreatives.com/ . The redesign is inspired by the requested reference, not an assertion that its exact proprietary font or component system has been reproduced.
+
+## Initial direction (historical)
 
 User direction: clean, modern, minimalist, premium, with a clear visual character.
 

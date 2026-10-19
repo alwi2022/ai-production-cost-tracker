@@ -110,7 +110,7 @@ test('HTTP import, persisted dashboard, mocked webhook and duplicate alert prote
     assert.deepEqual(second.projects, first.projects); assert.equal(second.notifications.length, first.notifications.length);
     const blocked = await fetch(`${url}/api/import`, { method: 'POST', headers: { Origin: 'https://other.example' } });
     assert.equal(blocked.status, 403);
-    const home = await fetch(url); assert.equal(home.status, 200); assert.match(await home.text(), /Production Ledger/);
+    const home = await fetch(url); assert.equal(home.status, 200); assert.match(await home.text(), /KU Creatives/);
   } finally {
     if (oldPort === undefined) delete process.env.PORT; else process.env.PORT = oldPort;
     await new Promise(resolve => server.close(resolve)); db.close();
