@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { openDb } from '../src/db.js';
 import { sendAlerts } from '../src/alerts.js';
-import { webhookConfig, postWebhook } from '../src/webhook.js';
+import { webhookConfig, postWebhook, discordPayload } from '../src/webhook.js';
 
 const discordUrl = 'https://discord.com/api/webhooks/123/fixture-only-token';
 function seed(db) {
@@ -26,6 +26,27 @@ test('Discord confirms message creation and disables mentions without exposing t
   assert.equal(result.messageId, 'discord-message-1');
   assert.throws(() => webhookConfig('https://discord.com/not-a-webhook'), /incoming webhook/);
   assert.throws(() => webhookConfig('file:///private/path'), /HTTP/);
+});
+
+test('Discord budget cards retain exact amounts and distinguish remaining budget from overspend', () => {
+  const payload = { project: 'GBX-01', project_name: 'Greenbox Garden Benchmark', current_spend_idr: 18971522.5, budget_idr: 17000000, content: 'Legacy text' };
+  const body = discordPayload(payload), card = body.embeds[0];
+  assert.equal(body.content, undefined);
+  assert.deepEqual(body.allowed_mentions, { parse: [] });
+  assert.equal(card.title, 'Greenbox Garden Benchmark');
+  assert.match(card.description, /Melebihi anggaran/);
+  assert.deepEqual(card.fields.map(f => [f.name, f.value]), [
+    ['Pengeluaran', 'Rp 18.971.522,50'], ['Anggaran', 'Rp 17.000.000,00'], ['Terpakai', '111,60%'], ['Kelebihan anggaran', 'Rp 1.971.522,50'],
+  ]);
+  const below = discordPayload({ ...payload, current_spend_idr: 17202815, budget_idr: 18750000 }).embeds[0];
+  assert.match(below.description, /Mendekati batas/);
+  assert.equal(below.fields[2].value, '91,75%');
+  assert.deepEqual(below.fields[3], { name: 'Sisa anggaran', value: 'Rp 1.547.185,00', inline: false });
+  assert.notEqual(below.color, card.color);
+  const demo = discordPayload({ ...payload, is_test: true });
+  assert.match(demo.content, /Pesan uji/);
+  const long = discordPayload({ ...payload, project_name: '*'.repeat(300) + 'A'.repeat(300) }).embeds[0];
+  assert.equal(long.title.length, 256);
 });
 
 test('switching from mock to Discord delivers once to each destination', async () => {

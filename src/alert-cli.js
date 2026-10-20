@@ -9,7 +9,11 @@ try {
     console.log(`Tujuan: ${config.discord ? 'Discord' : config.destination === 'mock' ? 'mock lokal' : 'webhook custom'}. URL disembunyikan. Tidak ada pesan dikirim.`);
   } else if (process.argv.includes('--test')) {
     if (!config.discord) throw new Error('Isi ALERT_WEBHOOK_URL di .env dengan incoming webhook Discord terlebih dahulu.');
-    await postWebhook({ content: 'KU Creatives | Tes koneksi notifikasi anggaran berhasil. Ini pesan uji, bukan alert pengeluaran proyek.' }, config);
+    await postWebhook({
+      is_test: true, project: 'DEMO-01', project_name: 'Contoh Alert Anggaran',
+      current_spend_idr: 9000000, budget_idr: 10000000,
+      content: 'Tes notifikasi. Data ilustrasi, bukan transaksi nyata.',
+    }, config);
     console.log('Satu pesan uji berhasil dikonfirmasi Discord. Status alert proyek tidak diubah.');
   } else {
     db = openDb();

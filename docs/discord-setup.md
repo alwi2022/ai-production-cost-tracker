@@ -32,7 +32,7 @@ The following command sends exactly one synthetic connection-test message to the
 npm.cmd run alerts:test
 ```
 
-Expected: a message from the webhook reading `KU Creatives | Tes koneksi notifikasi anggaran berhasil...` and a terminal success after Discord confirms creation.
+Expected: one embed card titled `Contoh Alert Anggaran`, clearly marked **Pesan uji**, showing illustrative spending of Rp9,000,000 against Rp10,000,000 (90%). The terminal reports success only after Discord confirms creation.
 
 ## Activate real project alerts
 
@@ -52,7 +52,9 @@ An existing pre-Discord database is migrated with its prior delivery history lab
 
 ## Delivery details and troubleshooting
 
-- Discord receives only `content` and `allowed_mentions: { parse: [] }`; project names cannot accidentally ping a user, role, or everyone.
+- Budget alerts use one Discord embed per project: project name/code, budget status, expense, budget, percentage, and remaining budget or overspend. Red marks exhausted/over-budget projects; amber marks approaching the limit. Rupiah and percentages use Indonesian separators and two decimal places. Test cards are explicitly marked as illustrative.
+- The old paragraph is not repeated above the embed. `allowed_mentions: { parse: [] }` prevents project names from pinging a user, role, or everyone. Generic non-budget test/custom messages can still use plain `content`.
+- The new format applies to future deliveries. Existing messages are not edited, deleted, or automatically resent. `alerts:test` previews one synthetic card without changing project delivery history.
 - The request uses `wait=true`. Delivery is marked sent only after Discord returns a created message ID.
 - HTTP 429/5xx and connection failures remain pending. The command or retry action can be run again; there is no background retry scheduler.
 - `401`/`404` commonly indicate an invalid/deleted webhook; create/copy the correct URL and update `.env`.
