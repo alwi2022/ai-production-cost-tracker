@@ -102,9 +102,11 @@ SQLite fits a small, single-machine internal tool and avoids a separate database
 
 ## Budget alerts
 
+Discord is supported directly via incoming webhook. Follow [docs/discord-setup.md](docs/discord-setup.md) for creating a webhook, storing it privately in `.env`, checking configuration, sending a synthetic test, and activating project alerts. `npm.cmd run alerts:check` sends nothing; `alerts:test` sends one synthetic message; `alerts:send` evaluates and sends real budget alerts.
+
 The threshold is interpreted as **strictly greater than 80%**, based on the brief's word "crosses". First importing a project already above the threshold sends a notification. Refunds reduce the current total before evaluation.
 
-One successful alert is sent per project over its lifetime. Falling below and subsequently exceeding the threshold does not create another alert. Raising a budget does not reset delivery history. Pending deliveries are persisted and retried after import or with the retry button; there is no background scheduler. Pending messages already queued may still be delivered if spend later falls below the threshold.
+One successful alert is sent per project per destination. Falling below and subsequently exceeding the threshold does not create another alert to the same destination. Raising a budget does not reset delivery history. Pending deliveries are persisted and retried after import, using `alerts:send`, or with the retry button; there is no background scheduler. Pending messages already queued may still be delivered if spend later falls below the threshold. Switching from the original local mock to Discord creates independent delivery state; credentials are represented by a URL hash, not stored in the database.
 
 Payload example (field values illustrative):
 
@@ -119,7 +121,7 @@ Payload example (field values illustrative):
 }
 ```
 
-The default receiver is `POST /api/mock-webhook`, visible in the Notifikasi inbox. A custom receiver should accept the JSON payload above. Different vendor-specific webhook formats may require an adapter. For external receivers, the `Idempotency-Key` header is `budget-80-<project_code>`; the local receiver deduplicates by project.
+The default receiver is `POST /api/mock-webhook`, visible in the Notifikasi inbox. A custom receiver should accept the JSON payload above. Discord receives its supported `content` field and disabled mentions, with `wait=true` for server confirmation. Other vendor-specific formats may require an adapter. The `Idempotency-Key` header is `budget-80-<project_code>`; the local receiver deduplicates by project. Discord does not guarantee deduplication using that header.
 
 Successful responses mark messages as sent; failed responses remain pending with attempt count/error. An external receiver that processes a message but loses its response can receive a retry. Exactly-once external delivery requires receiver-side idempotency. Run one application/import worker at a time; the local HTTP lock does not coordinate separate CLI/server processes.
 
@@ -157,7 +159,7 @@ npm.cmd test
 npm.cmd audit
 ```
 
-Seven test groups cover locale money parsing, refunds, date formats/WIB boundaries, aliases, API pagination/retries, full supplied-data reconciliation, reimport idempotency, persistent assignments, failed-source rollback, alert thresholds/retries, and HTTP import/dashboard/webhook behavior. Tests use isolated in-memory databases and a random-port HTTP server; they do not alter workspace financial data.
+Twelve test groups cover locale money parsing, refunds, date formats/WIB boundaries, aliases, API pagination/retries, full supplied-data reconciliation, reimport idempotency, persistent assignments, failed-source rollback, alert thresholds/retries, HTTP import/dashboard/webhook behavior, Discord payload/confirmation/errors, destination changes, and legacy delivery migration. Tests use isolated databases, fake outbound Discord requests, and a random-port local HTTP server; they do not alter workspace financial data or send external messages.
 
 The real mock API was also imported twice successfully. Dependency audit reports zero known vulnerabilities at implementation time. The UUID transitive dependency of ExcelJS is overridden to a patched CommonJS-compatible version, exercised by workbook import tests.
 
