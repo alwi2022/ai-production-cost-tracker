@@ -1,6 +1,7 @@
 import { icons } from './assets/icons.js';
 
 const $ = selector => document.querySelector(selector);
+const selectedFiles = {};
 const state = { data: null, view: 'overview', project: '', status: 'all', search: '', page: 1, busy: false, error: '', record: null };
 const titles = { overview: 'Overview', projects: 'Proyek', transactions: 'Transaksi', imports: 'Sumber & import', alerts: 'Notifikasi' };
 const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -26,7 +27,7 @@ function toast(message) {
   toastTimer = setTimeout(() => { $('#toast').hidden = true; }, 6500);
 }
 async function api(path, body) {
-  const response = await fetch(path, body === undefined ? {} : { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  const response = await fetch(path, body === undefined ? {} : body instanceof FormData ? { method: 'POST', body } : { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
   const result = await response.json();
   if (!response.ok) throw new Error(result.error || 'Request gagal');
   return result;
@@ -125,14 +126,14 @@ function transactions() {
 }
 function imports() {
   const latest = state.data.latestImport, summary = latest?.summary;
-  const sources = [['vendor_a', 'Vendor A', 'CSV', 'data/vendor_a.csv'], ['vendor_b', 'Vendor B', 'CSV', 'data/vendor_b.csv'], ['vendor_c', 'Vendor C', 'API', '/v1/usage'], ['manual', 'Operasional', 'Excel', 'data/manual_ops.xlsx']];
-  return `<div class="source-grid">${sources.map(([key, name, kind]) => `<section class="panel source-card"><div class="source-top"><h2>${name}</h2><span class="muted">${kind}</span></div><div class="source-count">${summary ? summary.sources[key] : '0'} <span class="muted">baris</span></div></section>`).join('')}</div>
+  const sources = [['vendor_a', 'Vendor A', 'CSV'], ['vendor_b', 'Vendor B', 'CSV'], ['vendor_c', 'Vendor C', 'API'], ['manual', 'Operasional', 'Excel']];
+  return `<p class="field-help">Pilih CSV atau Excel sesuai format contoh, maksimal 10 MB per file. Jika tidak dipilih, file bawaan digunakan.</p><div class="source-grid">${sources.map(([key, name, kind]) => `<section class="panel source-card"><div class="source-top"><h2>${name}</h2><span class="muted">${kind}</span></div><div class="source-count">${summary ? summary.sources[key] : '0'} <span class="muted">baris</span></div>${key !== 'vendor_c' ? `<label class="upload-label" for="file-${key}">Pilih ${kind}</label><input class="source-upload" id="file-${key}" data-source="${key}" type="file" accept="${key === 'manual' ? '.xlsx' : '.csv'}" ${state.busy ? 'disabled' : ''}><p class="field-help">${esc(selectedFiles[key]?.name || 'File bawaan')}${selectedFiles[key] ? ` <button class="text-button" data-clear-file="${key}" ${state.busy ? 'disabled' : ''}>Batal pilih</button>` : ''}</p>` : '<p class="field-help">Diambil otomatis saat import.</p>'}</section>`).join('')}</div>
     ${summary ? `<section class="panel import-summary"><div class="section-heading"><h2>Hasil import terakhir</h2><span class="muted">${datetime(latest.completed_at)} WIB</span></div><div class="summary-list">${[[summary.inserted, 'Baru'], [summary.updated, 'Diperbarui'], [summary.unchanged, 'Tidak berubah']].map(([value, label]) => `<div><strong>${value}</strong><span>${label}</span></div>`).join('')}</div></section>` : '<p class="muted">Belum ada import. Pastikan empat sumber tersedia, lalu pilih Import data.</p>'}
-    <details class="technical-details"><summary>${icon('chevron-down')}Konfigurasi & rincian import</summary><p>Perbarui file sumber dan jalankan API Vendor C sebelum import. Import ulang data yang sama tidak menambah total.</p><table><thead><tr><th>Sumber</th><th>Lokasi</th></tr></thead><tbody>${sources.map(([, name,, path]) => `<tr><td>${name}</td><td class="source-path">${path}</td></tr>`).join('')}</tbody></table>${summary ? `<p>Kurs: 1 credit = ${rupiah(summary.rates.credit_to_idr * 100)}; USD1 = ${rupiah(summary.rates.usd_to_idr * 100)}.</p><p>${summary.repeated} baris dengan ID berulang dilewati pada import terakhir. ${state.data.duplicateCount} overlap/duplikat tersimpan dikecualikan dari total.</p>` : ''}</details>`;
+    `;
 }
 function alerts() {
   const rows = state.data.alerts.map(a => `<tr><td><span class="project-name">${esc(a.payload.project_name)}</span><span class="project-code">${esc(a.project)}</span></td><td class="numeric">${rupiah(a.payload.current_spend_idr * 100)}</td><td class="numeric">${pct(a.payload.percentage_used)}</td><td>${badge(a.status === 'sent' ? 'Terkirim' : 'Tertunda', a.status === 'sent' ? '' : 'warn')}<span class="project-code">${a.sent_at ? `${datetime(a.sent_at)} WIB` : esc(a.error || 'Menunggu pengiriman')}</span></td></tr>`).join('');
-  return `${rows ? `<div class="panel table-wrap"><table><thead><tr><th>Proyek</th><th class="numeric">Pengeluaran saat notifikasi</th><th class="numeric">Terpakai</th><th>Pengiriman</th></tr></thead><tbody>${rows}</tbody></table></div>` : '<div class="panel empty">Belum ada notifikasi anggaran.</div>'}<details class="technical-details"><summary>${icon('chevron-down')}Inbox webhook mock (${state.data.notifications.length})</summary>${state.data.notifications.map(n => `<article class="webhook-message"><strong>${esc(n.payload.project_name || n.payload.project)}</strong><p>${esc(n.payload.content)}</p><small>${datetime(n.received_at)} WIB</small></article>`).join('') || '<p>Belum ada pesan di penerima lokal.</p>'}</details>`;
+  return rows ? `<div class="panel table-wrap"><table><thead><tr><th>Proyek</th><th class="numeric">Pengeluaran saat notifikasi</th><th class="numeric">Terpakai</th><th>Pengiriman</th></tr></thead><tbody>${rows}</tbody></table></div>` : '<div class="panel empty">Belum ada notifikasi anggaran.</div>';
 }
 
 function render() {
@@ -214,7 +215,13 @@ document.addEventListener('click', event => {
   if (b.dataset.project) { state.project = b.dataset.project; state.status = 'included'; return setView('transactions'); }
   if (b.dataset.record) return openRecord(b.dataset.record);
   if (b.id === 'theme') { document.body.classList.toggle('dark'); localStorage.setItem('ledger-theme', document.body.classList.contains('dark') ? 'dark' : 'light'); return updateThemeLabel(); }
-  if (b.id === 'import') return mutate('/api/import', {}, r => `Import selesai: ${r.summary.inserted} baru, ${r.summary.updated} diperbarui.`);
+  if (b.dataset.clearFile) { delete selectedFiles[b.dataset.clearFile]; return render(); }
+  if (b.id === 'import') {
+    const files = Object.entries(selectedFiles);
+    const body = files.length ? new FormData() : {};
+    for (const [key, file] of files) body.append(key, file);
+    return mutate(files.length ? '/api/import/upload' : '/api/import', body, r => `Import selesai: ${r.summary.inserted} baru, ${r.summary.updated} diperbarui.`);
+  }
   if (b.id === 'retry') return mutate('/api/alerts/retry', {}, 'Pengiriman notifikasi diperiksa.');
   if (b.id === 'review') { state.project = ''; state.status = 'unresolved'; state.search = ''; return setView('transactions'); }
   if (b.id === 'prev' || b.id === 'next') { state.page += b.id === 'next' ? 1 : -1; render(); $('#announcement').textContent = `Halaman transaksi ${state.page}`; return; }
@@ -222,6 +229,13 @@ document.addEventListener('click', event => {
   if (b.id === 'close-record' || b.id === 'cancel-record') $('#record-dialog').close();
 });
 document.addEventListener('change', event => {
+  if (event.target.dataset.source) {
+    const key = event.target.dataset.source;
+    const file = event.target.files[0];
+    if (!file) return;
+    if (file.size > 10 * 1024 * 1024 || !file.size) { state.error = 'Pilih file berisi data, maksimal 10 MB.'; return render(); }
+    selectedFiles[key] = file; state.error = ''; return render();
+  }
   if (event.target.id === 'project-filter') { state.project = event.target.value; state.page = 1; render(); }
   if (event.target.id === 'status-filter') { state.status = event.target.value; if (state.status === 'unresolved') state.project = ''; state.page = 1; render(); }
 });

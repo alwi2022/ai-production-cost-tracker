@@ -1,4 +1,7 @@
 import express from 'express';
+import multer from 'multer';
+import { cp, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { openDb } from './db.js';
@@ -17,6 +20,14 @@ export function createApp(db = openDb(), options = {}) {
     next();
   });
   app.use(express.json({ limit: '64kb' }));
+  const fileNames = { vendor_a: 'vendor_a.csv', vendor_b: 'vendor_b.csv', manual: 'manual_ops.xlsx' };
+  const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024, files: 3, fields: 0, parts: 4 },
+    fileFilter(req, file, done) {
+      const expected = fileNames[file.fieldname];
+      if (!expected || !file.originalname.toLowerCase().endsWith(expected.endsWith('.xlsx') ? '.xlsx' : '.csv')) return done(new Error('Pilih CSV untuk vendor dan XLSX untuk operasional.'));
+      done(null, true);
+    },
+  }).fields(Object.keys(fileNames).map(name => ({ name, maxCount: 1 })));
   app.get('/api/dashboard', (req, res) => { res.set('Cache-Control', 'no-store'); res.json(dashboard(db)); });
   app.get('/api/health', (req, res) => res.json({ status: 'ok', busy }));
   async function exclusive(res, action) {
@@ -30,6 +41,21 @@ export function createApp(db = openDb(), options = {}) {
     const summary = await importAll(db, options.importOptions);
     const alerts = await sendAlerts(db, options.alertOptions);
     return { summary, alerts };
+  }));
+  app.post('/api/import/upload', (req, res) => exclusive(res, async () => {
+    await new Promise((resolveUpload, reject) => upload(req, res, error => error ? reject(error) : resolveUpload()));
+    if (!Object.keys(req.files || {}).length) throw new Error('Pilih minimal satu file untuk diunggah.');
+    const directory = await mkdtemp(resolve(tmpdir(), 'cost-tracker-upload-'));
+    try {
+      await cp(options.importOptions?.dataDir || resolve('data'), directory, { recursive: true });
+      for (const [key, files] of Object.entries(req.files)) {
+        if (!files[0].size) throw new Error('File kosong tidak dapat diimpor.');
+        await writeFile(resolve(directory, fileNames[key]), files[0].buffer);
+      }
+      const summary = await importAll(db, { ...options.importOptions, dataDir: directory });
+      const alerts = await sendAlerts(db, options.alertOptions);
+      return { summary, alerts };
+    } finally { await rm(directory, { recursive: true, force: true }); }
   }));
   app.post('/api/alerts/retry', (req, res) => exclusive(res, async () => ({ alerts: await sendAlerts(db, options.alertOptions) })));
   app.post('/api/resolve', (req, res) => exclusive(res, async () => {

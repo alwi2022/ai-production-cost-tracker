@@ -15,6 +15,37 @@ const fixtureOptions = { apiKey: 'fixture-only', fetchImpl: async url => {
   return Response.json({ data: fixture.slice((page - 1) * 100, page * 100), has_more: page * 100 < fixture.length });
 } };
 
+test('file uploads import all sources, preserve totals on repeat and reject invalid batches atomically', async () => {
+  const db = openDb(':memory:');
+  const app = createApp(db, { importOptions: { vendorOptions: fixtureOptions }, alertOptions: { webhookUrl: 'http://127.0.0.1:1/api/mock-webhook', fetchImpl: async () => new Response(null, { status: 204 }) } });
+  const server = await new Promise(resolve => { const s = app.listen(0, '127.0.0.1', () => resolve(s)); });
+  const url = `http://127.0.0.1:${server.address().port}/api/import/upload`;
+  const batch = async () => {
+    const form = new FormData();
+    for (const [field, name] of [['vendor_a', 'vendor_a.csv'], ['vendor_b', 'vendor_b.csv'], ['manual', 'manual_ops.xlsx']]) form.append(field, new Blob([await readFile(new URL(`../data/${name}`, import.meta.url))]), name);
+    return form;
+  };
+  try {
+    let response = await fetch(url, { method: 'POST', body: await batch() });
+    assert.equal(response.status, 200);
+    assert.equal((await response.json()).summary.inserted, 383);
+    const before = dashboard(db);
+    response = await fetch(url, { method: 'POST', body: await batch() });
+    assert.equal((await response.json()).summary.unchanged, 383);
+    assert.deepEqual(dashboard(db).projects, before.projects);
+    const invalid = new FormData(); invalid.append('manual', new Blob(['broken workbook']), 'ops.xlsx');
+    response = await fetch(url, { method: 'POST', body: invalid }); assert.equal(response.status, 502);
+    assert.deepEqual(dashboard(db).projects, before.projects);
+    assert.equal(dashboard(db).latestImport.id, before.latestImport.id + 1);
+    const extension = new FormData(); extension.append('vendor_a', new Blob(['bad']), 'bad.exe');
+    assert.equal((await fetch(url, { method: 'POST', body: extension })).status, 502);
+    const empty = new FormData(); empty.append('vendor_a', new Blob([]), 'empty.csv');
+    assert.equal((await fetch(url, { method: 'POST', body: empty })).status, 502);
+    const cross = await fetch(url, { method: 'POST', headers: { Origin: 'https://other.example' }, body: await batch() });
+    assert.equal(cross.status, 403);
+  } finally { await new Promise(resolve => server.close(resolve)); db.close(); }
+});
+
 test('money preserves precision, locale separators and refunds', () => {
   assert.equal(money('$1,036.15', 'USD'), 103615);
   assert.equal(money('Rp 1.850.000', 'IDR'), 185000000);

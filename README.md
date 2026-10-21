@@ -52,13 +52,13 @@ The Vendor C process separately supports `PORT` and `VC_FAIL_RATE`. To disable i
 - **Overview:** total assigned spend, budgets, warnings, weekly net spend, and vendor breakdown. The project selector updates these views. Refunds reduce spend. Unassigned costs remain visible in a separate warning.
 - **Proyek:** project spend, budget, percentage, and status. Click a project name to inspect its transactions.
 - **Transaksi:** search, filter by project/status, and paginate in one toolbar. Click a transaction ID to open details. For an unresolved record, choose its confirmed project and click **Simpan proyek**. Assignments persist across imports and trigger budget evaluation.
-- **Sumber & import:** source locations, row counts, last import counts, and fixed conversion rates. Update the supplied files on disk and rerun import. This version does not have file upload controls.
-- **Notifikasi:** delivery status in one table. A retry action appears only when pending messages exist. The local mock webhook inbox is available in an expandable section.
+- **Sumber & import:** select Vendor A/B CSV and manual XLSX files (10 MB each), then click Import data. Unselected sources use the supplied files; Vendor C is fetched via HTTP. Uploads must keep the supplied columns and worksheet layout. Reloading clears the selection. Uploaded files do not overwrite source files on disk. Invalid batches preserve the last successful database import.
+- **Notifikasi:** delivery status in one table. A retry action appears only when pending messages exist.
 - **Export CSV:** available only on Transaksi; respects its visible project, search, and status filters. Includes `status` and `duplicate_of`, so duplicate rows must not be summed. Dates include `+07:00`; amounts are unformatted numeric IDR. Spreadsheet formula prefixes in text values are neutralized.
 - Light/dark theme persists in the browser. One top-bar toggle serves desktop and mobile.
-- Import exists only on Sumber & import. Source paths, conversion details, and diagnostics are in an expandable section instead of repeated notes.
+- Import exists only on Sumber & import.
 
-Review of the original 13 unassigned transactions is in [docs/unassigned-review.md](docs/unassigned-review.md). At the 2026-10-21 review, existing manual assignments linked vc_30307 to BRK-05 and vc_30294 to INT-00. The remaining 11 transactions total Rp5,157,470 and lack sufficient evidence for automatic allocation. These local assignments are not bundled in the repository; a fresh import starts with 13 unresolved records.
+Review of the original 13 unassigned transactions is in [docs/unassigned-review.md](docs/unassigned-review.md). The original data contains 13 unresolved records totaling Rp5,836,232.50. Blank or ambiguous project labels require confirmation from their owner; open the transaction detail, select the confirmed project and click **Simpan proyek**. The count previously fell to 7 because of user assignments. On 2026-10-21, the local database was reset to the original imported baseline: 383 records, 13 unresolved, no manual assignments, and empty alert/delivery history. A backup of the previous database is in `storage/backups/`. No Discord messages were sent during this reset; the next import evaluates alerts again.
 
 ## Architecture
 
@@ -104,6 +104,8 @@ SQLite fits a small, single-machine internal tool and avoids a separate database
 
 Discord is supported directly via incoming webhook. Follow [docs/discord-setup.md](docs/discord-setup.md) for creating a webhook, storing it privately in `.env`, checking configuration, sending a synthetic test, and activating project alerts. `npm.cmd run alerts:check` sends nothing; `alerts:test` sends one synthetic message; `alerts:send` evaluates and sends real budget alerts.
 
+Screenshot of a Discord budget notification: [Discord budget alert](docs/screenshots/discord-budget-alert.png).
+
 The threshold is interpreted as **strictly greater than 80%**, based on the brief's word "crosses". First importing a project already above the threshold sends a notification. Refunds reduce the current total before evaluation.
 
 One successful alert is sent per project per destination. Falling below and subsequently exceeding the threshold does not create another successfully delivered alert to the same destination. Raising a budget does not reset sent history. Before retrying, pending alerts are refreshed from current spending and budget. If spend is at or below 80%, the unsent alert is cancelled and hidden from active notifications, with its history retained. A later crossing reactivates that cancelled alert using current values. Retries run after import, using `alerts:send`, or with the retry button; there is no background scheduler. Switching from the original local mock to Discord creates independent delivery state; credentials are represented by a URL hash, not stored in the database.
@@ -121,7 +123,7 @@ Payload example (field values illustrative):
 }
 ```
 
-The default receiver is `POST /api/mock-webhook`, visible in the Notifikasi inbox. A custom receiver should accept the JSON payload above. Discord budget alerts use an embed card with project, status, expense, budget, percentage, and remaining budget or overspend, with Indonesian currency formatting and disabled mentions. Requests use `wait=true` for server confirmation. Other vendor-specific formats may require an adapter. The `Idempotency-Key` header is `budget-80-<project_code>`; the local receiver deduplicates by project. Discord does not guarantee deduplication using that header.
+The default receiver is `POST /api/mock-webhook`, retained for local testing. A custom receiver should accept the JSON payload above. Discord budget alerts use an embed card with project, status, expense, budget, percentage, and remaining budget or overspend, with Indonesian currency formatting and disabled mentions. Requests use `wait=true` for server confirmation. Other vendor-specific formats may require an adapter. The `Idempotency-Key` header is `budget-80-<project_code>`; the local receiver deduplicates by project. Discord does not guarantee deduplication using that header.
 
 Successful responses mark messages as sent; failed responses remain pending with attempt count/error. An external receiver that processes a message but loses its response can receive a retry. Exactly-once external delivery requires receiver-side idempotency. Run one application/import worker at a time; the local HTTP lock does not coordinate separate CLI/server processes.
 
@@ -159,7 +161,9 @@ npm.cmd test
 npm.cmd audit
 ```
 
-Fourteen test groups cover locale money parsing, refunds, date formats/WIB boundaries, aliases, API pagination/retries, full supplied-data reconciliation, reimport idempotency, persistent assignments, failed-source rollback, alert thresholds/retries, cancellation below the threshold and current-value reactivation, HTTP import/dashboard/webhook behavior, Discord card formatting/confirmation/errors, destination changes, and legacy delivery migration. Tests use isolated databases, fake outbound Discord requests, and a random-port local HTTP server; they do not alter workspace financial data or send external messages.
+Fifteen test groups cover file uploads and validation, locale money parsing, refunds, date formats/WIB boundaries, aliases, API pagination/retries, full supplied-data reconciliation, reimport idempotency, persistent assignments, failed-source rollback, alert thresholds/retries, cancellation below the threshold and current-value reactivation, HTTP import/dashboard/webhook behavior, Discord card formatting/confirmation/errors, destination changes, and legacy delivery migration. Tests use isolated databases, fake outbound Discord requests, and a random-port local HTTP server; they do not alter workspace financial data or send external messages.
+
+See [requirement verification](docs/verification.md) for the checks performed on 21 October 2026 and remaining verification gaps.
 
 The real mock API was also imported twice successfully. Dependency audit reports zero known vulnerabilities at implementation time. The UUID transitive dependency of ExcelJS is overridden to a patched CommonJS-compatible version, exercised by workbook import tests.
 
@@ -168,7 +172,7 @@ The real mock API was also imported twice successfully. Dependency audit reports
 ## Limitations and next steps
 
 - Local, single-user deployment; no authentication/roles or shared-hosting configuration. The server binds loopback and rejects cross-origin POSTs. Add authenticated sessions before exposing it over a network.
-- Fixed supplied file names and manual sheet layout; no drag/drop upload, configurable source mappings, or generic spreadsheet detection.
+- Fixed source columns and manual sheet layout; no configurable source mappings or generic spreadsheet detection. Uploaded imports use upsert; missing records are not deleted.
 - No schedule/background worker; operations trigger imports and pending alert retries. Source reads happen in memory, appropriate to this dataset rather than large production exports.
 - Explicit alias list and per-record resolution; no UI to change canonical budgets, undo an assignment, or approve ambiguous duplicate matches.
 - Immutable source deletions and manual corrections require an explicit adjustment workflow. Store source snapshots/revisions and add reversal support next.
