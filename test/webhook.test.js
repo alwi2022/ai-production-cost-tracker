@@ -8,6 +8,26 @@ import { sendAlerts } from '../src/alerts.js';
 import { webhookConfig, postWebhook, discordPayload } from '../src/webhook.js';
 
 const discordUrl = 'https://discord.com/api/webhooks/123/fixture-only-token';
+test('retry cancels alerts at or below 80%, requeues a later crossing, and uses current spend', async () => {
+  const db = openDb(':memory:'); seed(db);
+  const config = { webhookUrl: discordUrl, fetchImpl: async () => new Response(null, { status: 500 }) };
+  try {
+    await sendAlerts(db, config);
+    let calls = 0, sent;
+    const deliver = { webhookUrl: discordUrl, fetchImpl: async (url, request) => { calls++; sent = JSON.parse(request.body); return Response.json({ id: 'confirmed' }); } };
+    db.prepare('UPDATE usage SET amount=7000').run();
+    await sendAlerts(db, deliver);
+    assert.equal(calls, 0);
+    assert.equal(db.prepare('SELECT status FROM alert_deliveries').get().status, 'cancelled');
+    assert.equal(JSON.parse(db.prepare('SELECT payload FROM alerts').get().payload).percentage_used, 70);
+    db.prepare('UPDATE usage SET amount=8000').run();
+    await sendAlerts(db, deliver); assert.equal(calls, 0);
+    db.prepare('UPDATE usage SET amount=9200').run();
+    await sendAlerts(db, deliver); assert.equal(calls, 1);
+    assert.equal(sent.embeds[0].fields[2].value, '92,00%');
+    await sendAlerts(db, deliver); assert.equal(calls, 1);
+  } finally { db.close(); }
+});
 function seed(db) {
   db.prepare('INSERT INTO projects VALUES(?,?,?,?)').run('GBX-01', 'Greenbox', 'Client', 10000);
   db.prepare("INSERT INTO usage VALUES('vendor_a','1','GBX-01','GBX-01','Vendor A','video','2026-09-01T00:00:00Z',8100,NULL,'{}','included',NULL)").run();

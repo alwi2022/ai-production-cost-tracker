@@ -58,7 +58,7 @@ The Vendor C process separately supports `PORT` and `VC_FAIL_RATE`. To disable i
 - Light/dark theme persists in the browser. One top-bar toggle serves desktop and mobile.
 - Import exists only on Sumber & import. Source paths, conversion details, and diagnostics are in an expandable section instead of repeated notes.
 
-The UX research and final action placement are documented in [docs/ux-decisions.md](docs/ux-decisions.md). Review of the original 13 unassigned transactions is in [docs/unassigned-review.md](docs/unassigned-review.md). At review time, an existing user assignment had already linked one to BRK-05; the other 12 lack enough source evidence for automatic allocation.
+Review of the original 13 unassigned transactions is in [docs/unassigned-review.md](docs/unassigned-review.md). At the 2026-10-21 review, existing manual assignments linked vc_30307 to BRK-05 and vc_30294 to INT-00. The remaining 11 transactions total Rp5,157,470 and lack sufficient evidence for automatic allocation. These local assignments are not bundled in the repository; a fresh import starts with 13 unresolved records.
 
 ## Architecture
 
@@ -106,7 +106,7 @@ Discord is supported directly via incoming webhook. Follow [docs/discord-setup.m
 
 The threshold is interpreted as **strictly greater than 80%**, based on the brief's word "crosses". First importing a project already above the threshold sends a notification. Refunds reduce the current total before evaluation.
 
-One successful alert is sent per project per destination. Falling below and subsequently exceeding the threshold does not create another alert to the same destination. Raising a budget does not reset delivery history. Pending deliveries are persisted and retried after import, using `alerts:send`, or with the retry button; there is no background scheduler. Pending messages already queued may still be delivered if spend later falls below the threshold. Switching from the original local mock to Discord creates independent delivery state; credentials are represented by a URL hash, not stored in the database.
+One successful alert is sent per project per destination. Falling below and subsequently exceeding the threshold does not create another successfully delivered alert to the same destination. Raising a budget does not reset sent history. Before retrying, pending alerts are refreshed from current spending and budget. If spend is at or below 80%, the unsent alert is cancelled and hidden from active notifications, with its history retained. A later crossing reactivates that cancelled alert using current values. Retries run after import, using `alerts:send`, or with the retry button; there is no background scheduler. Switching from the original local mock to Discord creates independent delivery state; credentials are represented by a URL hash, not stored in the database.
 
 Payload example (field values illustrative):
 
@@ -159,11 +159,11 @@ npm.cmd test
 npm.cmd audit
 ```
 
-Thirteen test groups cover locale money parsing, refunds, date formats/WIB boundaries, aliases, API pagination/retries, full supplied-data reconciliation, reimport idempotency, persistent assignments, failed-source rollback, alert thresholds/retries, HTTP import/dashboard/webhook behavior, Discord card formatting/confirmation/errors, destination changes, and legacy delivery migration. Tests use isolated databases, fake outbound Discord requests, and a random-port local HTTP server; they do not alter workspace financial data or send external messages.
+Fourteen test groups cover locale money parsing, refunds, date formats/WIB boundaries, aliases, API pagination/retries, full supplied-data reconciliation, reimport idempotency, persistent assignments, failed-source rollback, alert thresholds/retries, cancellation below the threshold and current-value reactivation, HTTP import/dashboard/webhook behavior, Discord card formatting/confirmation/errors, destination changes, and legacy delivery migration. Tests use isolated databases, fake outbound Discord requests, and a random-port local HTTP server; they do not alter workspace financial data or send external messages.
 
 The real mock API was also imported twice successfully. Dependency audit reports zero known vulnerabilities at implementation time. The UUID transitive dependency of ExcelJS is overridden to a patched CommonJS-compatible version, exercised by workbook import tests.
 
-**Visual verification is incomplete:** browser access to the local app was denied by a saved permission preference, including a retry after the user reported changing it to Allow. No alternate browser path was used. Desktop/mobile layouts, actual keyboard flow, CSV download behavior, and theme rendering have not been clicked through. The current source/integration review and remaining verification boundary are documented in `anti-slop/audit-003-2026-10-19.md`; audit 002 includes the revised color contrast calculations. Earlier audits are retained as history.
+**Visual verification is incomplete:** automated browser access to the local app was blocked by the browser integration. Desktop/mobile layouts, actual keyboard flow, CSV download behavior, and theme rendering have not been clicked through.
 
 ## Limitations and next steps
 
@@ -176,4 +176,4 @@ The real mock API was also imported twice successfully. Dependency audit reports
 - The external webhook delivery guarantee is at-least-once around timeout/crash windows. Add a transactional worker lease and receiver idempotency for multi-worker deployment.
 - Dashboard reads all transactions before filtering/pagination in the browser. Move filtering and aggregation into paged SQL queries when the dataset grows.
 - Source mock test credentials are supplied by the assignment in its documentation/server. New application credentials are kept out of tracked files.
-- GitHub repository creation/push is not configured by this application. The local history is ready for a private remote selected by the user.
+- The local database and credentials are excluded from Git. Reviewers reproduce the supplied dataset through the documented import commands.

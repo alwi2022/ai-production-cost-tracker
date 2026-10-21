@@ -1,10 +1,10 @@
 # Review of originally unassigned transactions
 
-Reviewed 2026-10-19 against the supplied CSVs, Vendor C payloads, manual workbook values, project list, aliases, stored raw records, references, and persisted user assignments. This review makes no accounting mutations.
+Reviewed 2026-10-19 and refreshed 2026-10-21 against the supplied CSVs, Vendor C payloads, manual workbook values, project list, aliases, stored raw records, references, and persisted user assignments. This review makes no accounting mutations.
 
 ## Result
 
-The original set contains 13 records totaling Rp5.836.232,5. The live database now has **12 unresolved records totaling Rp5.201.507,5**. One pre-existing manual assignment links vc_30307 (Rp634.725) to BRK-05. That assignment was preserved; the source payload alone does not independently substantiate it.
+The original set contains 13 records totaling Rp5.836.232,50. At the 2026-10-21 review, the live database has **11 unresolved records totaling Rp5.157.470,00**. Existing manual assignments link vc_30307 (Rp634.725) to BRK-05 and vc_30294 (Rp44.037,50) to INT-00. Both were preserved; the source payload alone does not independently substantiate those decisions. A fresh checkout imports 13 unresolved records because local database assignments are not committed.
 
 | Record | Vendor | Original label | Amount IDR | Current result | Source evidence |
 | --- | --- | --- | ---: | --- | --- |
@@ -19,7 +19,7 @@ The original set contains 13 records totaling Rp5.836.232,5. The live database n
 | INV2609-4405 | Vendor B | sandbox | Rp1.080.300 | Unresolved | Label sandbox is generic or absent from the canonical project list; there is no project-specific reference. |
 | vc_30304 | Vendor C | sandbox | Rp214.500 | Unresolved | Label sandbox is generic or absent from the canonical project list; there is no project-specific reference. |
 | vc_30299 | Vendor C | sandbox | Rp617.012,5 | Unresolved | Label sandbox is generic or absent from the canonical project list; there is no project-specific reference. |
-| vc_30294 | Vendor C | sandbox | Rp44.037,5 | Unresolved | Label sandbox is generic or absent from the canonical project list; there is no project-specific reference. |
+| vc_30294 | Vendor C | sandbox | Rp44.037,5 | Existing manual assignment: INT-00 | Label sandbox is generic or absent from the canonical project list; there is no project-specific reference. |
 | vc_30307 | Vendor C | sandbox | Rp634.725 | Existing manual assignment: BRK-05 | Label sandbox is generic or absent from the canonical project list; there is no project-specific reference. |
 
 ## Decisions

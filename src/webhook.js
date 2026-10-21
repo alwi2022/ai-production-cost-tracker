@@ -35,7 +35,7 @@ export function discordPayload(payload) {
         { name: 'Terpakai', value: `${percentage}%`, inline: true },
         { name: over ? 'Kelebihan anggaran' : 'Sisa anggaran', value: amount(Math.abs(budget - spend)), inline: false },
       ],
-      footer: { text: 'KU Creatives · Ambang notifikasi 80%' },
+      footer: { text: 'KU Creatives · Production Finance' },
     }],
   };
 }

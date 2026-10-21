@@ -17,7 +17,7 @@ export function dashboard(db) {
     unresolved, unresolvedSpend: unresolved.reduce((s, u) => s + u.amount, 0),
     duplicateCount: usage.filter(u => u.status === 'duplicate').length,
     latestImport: latest ? { ...latest, summary: JSON.parse(latest.summary) } : null,
-    alerts: db.prepare('SELECT * FROM alerts ORDER BY project').all().map(a => ({ ...a, payload: JSON.parse(a.payload) })),
+    alerts: db.prepare("SELECT * FROM alerts WHERE status!='cancelled' ORDER BY project").all().map(a => ({ ...a, payload: JSON.parse(a.payload) })),
     notifications: db.prepare('SELECT * FROM notifications ORDER BY id DESC LIMIT 50').all().map(n => ({ ...n, payload: JSON.parse(n.payload) })),
   };
 }

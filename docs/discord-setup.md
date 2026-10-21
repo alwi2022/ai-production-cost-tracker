@@ -57,6 +57,7 @@ An existing pre-Discord database is migrated with its prior delivery history lab
 - The new format applies to future deliveries. Existing messages are not edited, deleted, or automatically resent. `alerts:test` previews one synthetic card without changing project delivery history.
 - The request uses `wait=true`. Delivery is marked sent only after Discord returns a created message ID.
 - HTTP 429/5xx and connection failures remain pending. The command or retry action can be run again; there is no background retry scheduler.
+- Before retry, current project totals are recomputed. At or below 80%, unsent alerts are cancelled rather than sending a stale amount. If the project crosses 80% again, the cancelled alert is reactivated with current spend/budget. Confirmed deliveries remain deduplicated.
 - `401`/`404` commonly indicate an invalid/deleted webhook; create/copy the correct URL and update `.env`.
 - The URL and response body are not printed in error logs.
 - Discord does not provide the custom Idempotency-Key guarantee used by the local mock. A message accepted by Discord followed by a lost response can be duplicated on retry. Application-side tracking prevents normal reimport duplicates, not every network-failure/crash window.
