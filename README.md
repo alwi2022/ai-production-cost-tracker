@@ -104,7 +104,9 @@ SQLite fits a small, single-machine internal tool and avoids a separate database
 
 Discord is supported directly via incoming webhook. Follow [docs/discord-setup.md](docs/discord-setup.md) for creating a webhook, storing it privately in `.env`, checking configuration, sending a synthetic test, and activating project alerts. `npm.cmd run alerts:check` sends nothing; `alerts:test` sends one synthetic message; `alerts:send` evaluates and sends real budget alerts.
 
-Screenshot of a Discord budget notification: [Discord budget alert](docs/screenshots/discord-budget-alert.png).
+Screenshot of a Discord budget notification:
+
+![Discord budget notification showing project spending, budget, and percentage used](docs/screenshots/discord-budget-alert.png)
 
 The threshold is interpreted as **strictly greater than 80%**, based on the brief's word "crosses". First importing a project already above the threshold sends a notification. Refunds reduce the current total before evaluation.
 
